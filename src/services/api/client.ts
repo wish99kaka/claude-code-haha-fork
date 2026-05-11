@@ -24,7 +24,9 @@ import {
 import { getOauthConfig } from '../../constants/oauth.js'
 import {
   buildOpenAICodexFetch,
+  buildOpenAIChatCompatibleFetch,
   OPENAI_OAUTH_DUMMY_KEY,
+  shouldUseOpenAIChatCompatibleFetch,
   shouldUseOpenAICodexAuth,
 } from '../openaiAuth/fetch.js'
 import { isOpenAIResponsesModel } from '../openaiAuth/models.js'
@@ -163,6 +165,8 @@ export async function getAnthropicClient({
     (isOpenAIModel ||
       (!process.env.ANTHROPIC_AUTH_TOKEN &&
         !(apiKey || getAnthropicApiKey())))
+  const usingOpenAIChatCompatibleFetch =
+    !usingOpenAICodex && shouldUseOpenAIChatCompatibleFetch()
 
   if (!isClaudeAISubscriber() && !usingOpenAICodex) {
     await configureApiKeyHeaders(defaultHeaders, getIsNonInteractiveSession())
@@ -170,7 +174,9 @@ export async function getAnthropicClient({
 
   const resolvedFetch = usingOpenAICodex
     ? buildOpenAICodexFetch(fetchOverride, source)
-    : buildFetch(fetchOverride, source)
+    : usingOpenAIChatCompatibleFetch
+      ? buildOpenAIChatCompatibleFetch(fetchOverride, source)
+      : buildFetch(fetchOverride, source)
 
   const ARGS = {
     defaultHeaders,
